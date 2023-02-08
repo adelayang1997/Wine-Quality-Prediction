@@ -1,0 +1,215 @@
+---
+title: "final_project"
+author: "ChihChin Yang(Adela), ChunYu Lo(Jack), SzuWei Fu(Alexia)"
+date: "2022/3/13"
+output:
+  pdf_document: default
+  html_document: default
+---
+# 1. Title Page: 
+ChihChin Yang(Adela), ChunYu Lo(Jack), SzuWei Fu(Alexia)
+
+# 2. Introduction:
+```{r}
+library(tidyverse)
+library(GGally)
+library(lattice)
+library(ggfortify)
+library(car)
+```
+
+```{r}
+white_wine <- read.table(file = 'winequality-white.csv',header = TRUE,sep=";")
+red_wine <- read.table(file = 'winequality-red.csv',header = TRUE,sep=";")
+```
+
+- We find two data sets, one is red wine and the other one is white wine from the north of Portugal. Sample collection is uneven, most of the observation are normal wines and there are only few excellent or poor wines. White wine have 4898 observation of 12 variables.; Red wine have 1599 observation of 12 variables. All variables are quantitative variables.
+
+- This dataset has several variables, including a dependent variable, wine quality. We can make a prediction linear model to predict the wine quality. We want to know which variable contributes the most to wine quality rather than just predict the dependent variable. Thus, the regression model is appropriate to this dataset.
+
+```{r}
+# All variables are quantitative
+str(white_wine)
+str(red_wine)
+summary(white_wine)
+summary(red_wine)
+```
+
+- Input variables (based on physicochemical tests):
+1. fixed acidity: most acids involved with wine that are fixed or nonvolatile
+
+2. volatile acidity: amount of acetic acid in wine
+
+3. citric acid: can add ‘freshness’ and flavor to wines
+
+4. residual sugar: amount of sugar remaining after fermentation stops
+
+5. chlorides: amount of salt in the wine
+
+6. free sulfur dioxide: prevents microbial growth and the oxidation of wine(free form)
+
+7. total sulfur dioxide: free and bound forms of S02; in low concentrations
+
+8. density: closeness of density to that of water depending on the percent alcohol and sugar content
+
+9. pH: describes how acidic a wine is on a scale from 0 (very acidic) to 14 (very basic) 
+
+10. sulphates: Wine additive which can contribute to sulfur dioxide gas (S02) levels. Acts as an antimicrobial and antioxidant
+
+11. alcohol: the percent alcohol content of the wine (% by volume)
+
+```{r}
+ggplot(gather(white_wine), aes(value)) + 
+  geom_histogram() + 
+  facet_wrap(~key, scales = "free")
+```
+
+```{r}
+ggplot(gather(red_wine), aes(value)) + 
+  geom_histogram() + 
+  facet_wrap(~key, scales = "free")
+```
+- Density and pH seems normally distributed. Majority of other variables are skewed to the right.
+
+- Output variable (based on sensory data):
+
+12. quality (score between 0 and 10)
+
+```{r}
+ggplot(white_wine, aes(quality))+
+  geom_histogram()+
+  ggtitle("White Wine Quality Distribution")
+```
+
+```{r}
+ggplot(red_wine, aes(quality))+
+  geom_histogram()+
+  ggtitle("Red Wine Quality Distribution")
+```
+
+- The dependent variable is discrete variable (quality rating ranges from 3 to 8, mostly between 5 and 6). It has only integer but it's continuous, not categorical, because rational number also has a meaning. Therefore, we could make a linear model without any conversion.
+
+- The research question is which critical factors can influence the wine quality. 
+
+- The goal is to model wine quality based on physicochemical tests.
+
+# 3. Initial Hypotheses:
+
+Model assumtion:
+
+  $E(Y) = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_{11} X_{11} + \varepsilon$
+
+Initial hypothese:
+
+  $H_0 : \beta_1 = \beta_2 = ... =\beta_{11}=0$
+  
+  $H_1 : \beta_i \neq 0$ for some $i = 1,2,...11$
+  
+Before we look at the data, we believe that model satisfy assumtion (1)Normality (2)Independence (3)Homogeneity
+
+# 4. Exploratory Data Analysis:
+```{r}
+ggpairs(white_wine, title="White Wine Features Correlation with ggpairs")
+ggpairs(red_wine, title="Red Wine Features Correlation with ggpairs")
+```
+
+- White wine: The strongest association with quality is alcohol(0.436). 
+The lowest association with quality are citric acid(-0.009) and free sulfur dioxide(0.008).
+
+- Red wine: The strongest association with quality is alcohol(0.476).
+The lowest association with quality is residual sugar(0.014).
+
+# Multiple linear regression
+```{r}
+lm_white_wine <- lm(quality ~ ., data = white_wine)
+summary(lm_white_wine)
+reduce_lm_white_wine <- step(lm_white_wine, direction = "both")
+reduce_lm_white_wine$call
+summary(reduce_lm_white_wine)
+```
+
+- The summary is up there. R-squared is 0.2818, not good. t-test says all variables are significant.
+
+```{r}
+confint(reduce_lm_white_wine)
+```
+
+- The confidence interval for all variables doesn't include zero. That means all variables are credible.
+
+```{r}
+lm_red_wine <- lm(quality ~ ., data = red_wine)
+summary(lm_red_wine)
+reduce_lm_red_wine <- step(lm_red_wine, direction = "both")
+reduce_lm_red_wine$call
+summary(reduce_lm_red_wine)
+```
+
+- The summary is up there. R-squared is 0.3595, not good. t-test says all variables are significant.
+
+```{r}
+confint(reduce_lm_red_wine)
+```
+
+- The confidence interval for all variables doesn't include zero. That means all variables are credible.
+
+- Conclusion: We figured out from the result, alcohol is the most powerful variables to wine quality. But it's risky to interpret the result as 'more alcohol, more quality'. We all know that's not true. It's appropriate to interpret it as it'd be better to add more alcohol within normal range to might improve wine quality. On the other hand, we can take care less pH and free sulfur dioxide or something.
+
+# Model testing
+```{r}
+# Assumtion
+autoplot(reduce_lm_white_wine)
+autoplot(reduce_lm_red_wine)
+```
+
+Because the dependent variable is discrete the residual vs fitted plot seems ot be quite different from the one from normal regression. 
+
+```{r}
+# Residual normality test
+shapiro.test(reduce_lm_white_wine$residuals)
+shapiro.test(reduce_lm_red_wine$residuals)
+
+# Residual independence test
+durbinWatsonTest(reduce_lm_white_wine)
+durbinWatsonTest(reduce_lm_red_wine)
+
+# Residual variance homogeneity test
+ncvTest(reduce_lm_white_wine)
+ncvTest(reduce_lm_red_wine)
+```
+
+The p-value is very small, so the null hypothesis is rejected, indicating that y does not conform to the normal distribution, does not conform to the assumption of independence, and does not conform to the assumption of homogeneity.
+
+# 5. Data-drivin Hypotheses:
+
+White wine:
+
+  $H_0 : \beta_1 = \beta_2 = ... =\beta_{8}=0$
+  
+  $H_1 : \beta_i \neq 0$ for some $i = 1,2,...8$
+
+Red wine:
+  $H_0 : \beta_1 = \beta_2 = ... =\beta_{7}=0$
+  
+  $H_1 : \beta_i \neq 0$ for some $i = 1,2,...7$
+
+# 6. Discussion: 
+
+We find out there is not only one input variable strongly related with the quality. We figured out from the result, that alcohol is the most powerful variable in wine quality. But it's risky to interpret the result as "more alcohol, more quality". It's appropriate to interpret it as it'd be better to add more alcohol within the normal range to might improve wine quality. 
+
+The limitation of this research is the quality mostly distributed in 4 to 8. My recommendation for this two data sets is the quality can be distributed in 0 to 10. Thus, we can clearly know whether this model is a good one.
+
+# 7. References:
+Cortez, P. (2010, July). Data mining with neural networks and support vector machines using the R/rminer tool. In Industrial conference on data mining (pp. 572-583). Springer, Berlin, Heidelberg.
+
+Cortez, P., & Embrechts, M. J. (2013). Using sensitivity analysis and visualization techniques to open black box data mining models. Information Sciences, 225, 1-17.
+
+Lee, K., Lam, M., Pedarsani, R., Papailiopoulos, D., & Ramchandran, K. (2017). Speeding up distributed machine learning using codes. IEEE Transactions on Information Theory, 64(3), 1514-1529.
+
+Mei, S., & Zhu, X. (2015, February). Using machine teaching to identify optimal training-set attacks on machine learners. In Twenty-Ninth AAAI Conference on Artificial Intelligence.
+
+Moro, S., Cortez, P., & Rita, P. (2014). A data-driven approach to predict the success of bank telemarketing. Decision Support Systems, 62, 22-31.
+
+P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. Modeling wine preferences by data mining from physicochemical properties.
+In Decision Support Systems, Elsevier, 47(4):547-553, 2009.
+
+# 8. Appendix:

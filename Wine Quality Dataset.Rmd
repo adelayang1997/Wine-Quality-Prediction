@@ -1,0 +1,182 @@
+---
+title: "Wine Quality Dataset"
+author: "ChunYu Lo (Jack), ChihChin Yang (Adela), Szu Wei Fu (Alexia)"
+date: "4/18/2022"
+output: powerpoint_presentation
+---
+```{r}
+library(tidyverse)
+library(GGally)
+library(lattice)
+library(ggfortify)
+library(car)
+```
+
+```{r}
+white_wine <- read.table(file = "winequality-white.csv",header = TRUE,sep=";") 
+red_wine <- read.table(file = "winequality-red.csv",header = TRUE,sep=";")
+```
+
+## Problem Statement 
+
+
+- The wine rating are subjective, we want to see whether we can use a physicochemical test to deduce sensory quality from those 11 variables
+- The most important is to make wine rating more objective 
+
+## Initial Hypotheses 
+
+- Model assumption: E(Y)=β0 +β1X1 +β2X2 +...+β11X11 +ε 
+- Initial Hypotheses:
+
+H0: β1 =β2 =...=β11 =0
+H1: βi ≠ 0 for some i =1,2,...11 
+
+## Introduction
+
+- Two kinds of data set, one is red wine and the other is white wine 
+- The two sample sizes are not even, all variables are quantitative variables
+- We would use different test to check the 1) Normality 2) Independence 3) Homogeneity
+
+## White wine 
+```{r}
+str(white_wine)
+```
+
+## Red wine 
+```{r}
+str(red_wine)
+```
+
+## Input variables & Output variables
+
+1. fixed acidity
+2. volatile acidity
+3. citric acid
+4. residual sugar
+5. Chlorides
+6. free sulfur dioxide
+7. total sulfur dioxide
+8. Density
+9. pH
+10. Sulphates
+11. alcohol
+12. quality
+
+## White wine 
+```{r}
+ggplot(gather(white_wine), aes(value)) +
+  geom_histogram() +
+  facet_wrap(~key, scales = "free")
+```
+
+## Red wine
+```{r}
+ggplot(gather(red_wine), aes(value)) +
+  geom_histogram() +
+  facet_wrap(~key, scales = "free")
+```
+Density and pH seems normally distributed 
+
+Majority of other variables are skewed to the right 
+
+## Red/White wine Quality Distribution
+The dependent variable is discrete variable 
+
+It was a continues integer and the rational number has meaning
+```{r}
+ggplot(white_wine, aes(quality))+
+  geom_histogram()+
+  ggtitle("White Wine Quality Distribution")
+```
+
+```{r}
+ggplot(red_wine, aes(quality))+
+  geom_histogram()+
+  ggtitle("Red Wine Quality Distribution")
+```
+
+## White wine
+```{r}
+ggpairs(white_wine, title="White Wine Features Correlation with ggpairs")
+```
+The strongest association with quality is alcohol(0.436) 
+
+The lowest association with quality are citric acid(-0.009) and free sulfur dioxide(0.008) 
+
+## Red wine
+```{r}
+ggpairs(red_wine, title="Red Wine Features Correlation with ggpairs")
+```
+The strongest association with quality is alcohol(0.476) 
+
+The lowest association with quality is residual sugar (0.014) 
+
+## White wine
+Therefore, 28% of the variability in quality is explained by the multiple linear regression with our reduced model which are eight variables.
+```{r}
+lm_white_wine <- lm(quality ~ ., data = white_wine) 
+summary(lm_white_wine)
+```
+
+## Red wine
+Therefore, 35% of the variability in quality is explained by the multiple linear regression with our reduced model which are seven variables. 
+```{r}
+lm_red_wine <- lm(quality ~ ., data = red_wine)
+summary(lm_red_wine)
+```
+
+## White wine
+```{r}
+reduce_lm_white_wine <- step(lm_white_wine, direction = "both")
+autoplot(reduce_lm_white_wine)
+```
+
+## Red wine
+```{r}
+reduce_lm_red_wine <- step(lm_red_wine, direction = "both")
+autoplot(reduce_lm_red_wine)
+```
+
+## White/Red wine residual normality test
+```{r}
+shapiro.test(reduce_lm_white_wine$residuals)
+shapiro.test(reduce_lm_red_wine$residuals)
+```
+
+## White/Red wine residual independence test
+```{r}
+durbinWatsonTest(reduce_lm_white_wine)
+durbinWatsonTest(reduce_lm_red_wine)
+```
+
+## White/Red wine residual variance homogeneity test
+```{r}
+ncvTest(reduce_lm_white_wine)
+ncvTest(reduce_lm_red_wine)
+```
+
+## Conclusion of Three Test
+
+- With the small p-value which we reject the null hypothesis
+- y does not conform to the normal distribution, 
+- does not conform to the assumption of independence, 
+- does not conform to the assumption of homogeneity. 
+
+## Discussion 
+
+- Although alcohol is the most powerful variable in wine quality. But it is risky to interpret the result as “more alcohol is the most powerful variable in wine quality”
+
+- It would be better to interpret the result as adding more alcohol within the normal range that might improve the wine quality. 
+
+## Future Directions 
+
+- For future research, except for the physicochemical test, we can add more variables. For example, the year of the wine, grape varieties, price, etc. 
+
+## References
+
+Cortez, P. (2010, July). Data mining with neural networks and support vector machines using the R/rminer tool. In Industrial conference on data mining (pp. 572-583). Springer, Berlin, Heidelberg. 
+Cortez, P., & Embrechts, M. J. (2013). Using sensitivity analysis and visualization techniques to open black box data mining models. Information Sciences, 225, 1-17. 
+Lee, K., Lam, M., Pedarsani, R., Papailiopoulos, D., & Ramchandran, K. (2017). Speeding up distributed machine learning using codes. IEEE Transactions on Information Theory, 64(3), 1514-1529. 
+Mei, S., & Zhu, X. (2015, February). Using machine teaching to identify optimal training-set attacks on machine learners. In Twenty-Ninth AAAI Conference on Artificial Intelligence. 
+Moro, S., Cortez, P., & Rita, P. (2014). A data-driven approach to predict the success of bank telemarketing. Decision Support Systems, 62, 22-31. 
+P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. Modeling wine preferences by data mining from physicochemical properties. In Decision Support Systems, Elsevier, 47(4):547-553, 2009. 
